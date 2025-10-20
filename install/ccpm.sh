@@ -2,13 +2,21 @@
 
 # CCPM Installation Script
 # Installs Claude Code Project Manager correctly into .claude directory
-# Usage: curl -fsSL https://raw.githubusercontent.com/YOUR_REPO/main/install-ccpm.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/automazeio/ccpm/main/install/ccpm.sh | bash
 
 set -e  # Exit on error
 
 REPO_URL="https://github.com/automazeio/ccpm.git"
 TEMP_DIR=$(mktemp -d)
 PROJECT_ROOT=$(pwd)
+
+# Ensure cleanup on exit (success or failure)
+cleanup() {
+    if [ -d "$TEMP_DIR" ]; then
+        rm -rf "$TEMP_DIR"
+    fi
+}
+trap cleanup EXIT
 
 echo ""
 echo "╔════════════════════════════════════════╗"
@@ -45,15 +53,14 @@ echo ""
 
 # Step 3: Copy CCPM files to .claude/ccpm/
 echo "📋 Step 3/5: Installing CCPM files..."
-cp -r "$TEMP_DIR/ccpm/"* "$PROJECT_ROOT/.claude/ccpm/"
+cp -r "$TEMP_DIR/ccpm"/* "$PROJECT_ROOT/.claude/ccpm/"
 echo "   ✅ CCPM files installed to .claude/ccpm/"
 echo ""
 
-# Step 4: Create symlinks for commands (or copy them)
+# Step 4: Copy commands to .claude/commands/ for Claude Code discovery
 echo "🔗 Step 4/5: Setting up slash commands..."
-# Copy command files to .claude/commands/ so Claude Code can find them
 if [ -d "$PROJECT_ROOT/.claude/ccpm/commands" ]; then
-    cp -r "$PROJECT_ROOT/.claude/ccpm/commands/"* "$PROJECT_ROOT/.claude/commands/"
+    cp -r "$PROJECT_ROOT/.claude/ccpm/commands"/* "$PROJECT_ROOT/.claude/commands/"
     echo "   ✅ Slash commands installed to .claude/commands/"
 else
     echo "   ⚠️  No commands directory found in CCPM"
@@ -70,28 +77,33 @@ else
 fi
 echo ""
 
-# Cleanup
-echo "🧹 Cleaning up..."
-rm -rf "$TEMP_DIR"
-echo "   ✅ Cleanup complete"
-echo ""
+# Note: Cleanup of temp directory handled automatically by trap on exit
 
-# Create .gitignore if it doesn't exist
+# Update .gitignore
+echo "📝 Updating .gitignore..."
 if [ ! -f "$PROJECT_ROOT/.gitignore" ]; then
-    echo "📝 Creating .gitignore..."
+    # Create new .gitignore
     cat > "$PROJECT_ROOT/.gitignore" << 'EOF'
 # CCPM - Local workspace files
 .claude/epics/
-
-# Mac files
-.DS_Store
 
 # Local settings
 .claude/settings.local.json
 EOF
     echo "   ✅ .gitignore created"
-    echo ""
+else
+    # Append CCPM entries if they don't exist
+    if ! grep -q ".claude/epics/" "$PROJECT_ROOT/.gitignore" 2>/dev/null; then
+        echo "" >> "$PROJECT_ROOT/.gitignore"
+        echo "# CCPM - Local workspace files" >> "$PROJECT_ROOT/.gitignore"
+        echo ".claude/epics/" >> "$PROJECT_ROOT/.gitignore"
+        echo ".claude/settings.local.json" >> "$PROJECT_ROOT/.gitignore"
+        echo "   ✅ .gitignore updated with CCPM exclusions"
+    else
+        echo "   ✅ .gitignore already contains CCPM exclusions"
+    fi
 fi
+echo ""
 
 # Success message
 echo "╔════════════════════════════════════════╗"
