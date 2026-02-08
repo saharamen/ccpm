@@ -6,7 +6,7 @@
 
 set -e  # Exit on error
 
-REPO_URL="https://github.com/automazeio/ccpm.git"
+REPO_URL="https://github.com/saharamen/ccpm.git"
 TEMP_DIR=$(mktemp -d)
 PROJECT_ROOT=$(pwd)
 
